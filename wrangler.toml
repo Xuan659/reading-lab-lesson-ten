@@ -1,0 +1,17 @@
+name = "reading-lab-lesson-ten"
+main = "worker.js"
+compatibility_date = "2026-11-23"
+
+[assets]
+directory = "."
+binding = "ASSETS"
+not_found_handling = "single-page-application"
+run_worker_first = ["/api/*"]
+
+[[durable_objects.bindings]]
+name = "CLASSROOM"
+class_name = "ClassroomRoom"
+
+[[migrations]]
+tag = "v1"
+new_sqlite_classes = ["ClassroomRoom"]

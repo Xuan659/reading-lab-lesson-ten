@@ -1,0 +1,98 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="theme-color" content="#f7f4eb" />
+  <title>小作家・耶誕節閱讀教室</title>
+  <link rel="stylesheet" href="./styles.css" />
+</head>
+<body>
+  <div class="app-shell">
+    <header class="topbar">
+      <div class="brand" aria-label="國語閱讀任務"><span class="brand-mark">讀</span><span class="brand-name">第十課・耶誕節</span><span class="brand-sub">閱讀任務</span></div>
+      <div class="lesson-label">國語六上・第十課</div>
+      <button id="teacherEntry" class="teacher-entry" type="button">教師入口 ↗</button>
+    </header>
+
+    <main id="studentView" class="student-view">
+      <section id="homePanel" class="hero-panel">
+        <div class="hero-copy">
+          <div class="eyebrow">第十課・耶誕節 / READING STUDIO</div>
+          <h1>把課文線索，<br /><span>整理成清楚的故事。</span></h1>
+          <p>從自然段找出意義段，再沿著故事脈絡整理重點，<br class="desktop-break" />一起讀懂〈耶誕節〉。</p>
+          <button id="beginButton" class="hero-button" type="button">開始小組任務 ↗</button>
+          <div class="journey-label">01 意義段　 /　 02 故事結構　 /　 小組共作</div>
+        </div>
+        <div class="hero-art" aria-label="耶誕閱讀筆記">
+          <div class="art-halo"></div>
+          <div class="reading-note">
+            <div class="note-tape"></div><small>✦ A LITTLE READING NOTE</small>
+            <h2>用問題找線索，<br />用文字整理想法。</h2>
+            <div class="note-tags"><span>自然段</span><span>意義段</span><span>故事結構</span></div>
+            <p>先讀提示、找課文證據，<br />再把重點寫清楚。</p>
+            <div class="note-footer">WORDS MAKE A LITTLE MAGIC</div>
+          </div>
+          <svg class="tree-illustration" viewBox="0 0 220 300" role="img" aria-label="耶誕樹插畫">
+            <path d="M110 15 126 39 118 38 143 82 132 80 164 132 145 130 184 190 132 190 132 238 88 238 88 190 36 190 75 130 56 132 88 80 77 82 102 38 94 39Z" fill="#315c4c"/>
+            <path d="M110 15 126 39 118 38 143 82 132 80 164 132 145 130 184 190 132 190 132 238 88 238 88 190 36 190 75 130 56 132 88 80 77 82 102 38 94 39Z" fill="none" stroke="#244a3b" stroke-width="2"/>
+            <path d="M67 137c20 17 53 19 85 2M49 185c33 20 85 21 122-1" fill="none" stroke="#d6bb72" stroke-width="4" stroke-linecap="round"/>
+            <path d="m110 3 4 10 11 1-8 7 3 11-10-6-10 6 3-11-8-7 11-1Z" fill="#c9a451"/>
+            <circle cx="93" cy="102" r="5" fill="#bd6d70"/><circle cx="128" cy="115" r="5" fill="#dfc779"/><circle cx="78" cy="158" r="5" fill="#dfc779"/><circle cx="120" cy="170" r="5" fill="#bd6d70"/>
+            <rect x="91" y="236" width="38" height="31" rx="3" fill="#98745b"/>
+            <rect x="48" y="244" width="28" height="26" rx="2" fill="#d8c98f"/><path d="M62 244v26M48 257h28" stroke="#f6efdc" stroke-width="3"/>
+            <rect x="148" y="245" width="30" height="28" rx="2" fill="#8c4c50"/><path d="M163 245v28M148 259h30" stroke="#f3e7d3" stroke-width="3"/>
+          </svg>
+          <div class="sparkle sparkle-one">✧</div><div class="sparkle sparkle-two">✦</div>
+        </div>
+      </section>
+
+      <section id="stagePanel" class="stage-panel">
+        <div class="section-intro"><div><div class="eyebrow">OUR READING JOURNEY</div><h2>選擇今天的學習階段。</h2><p>每組共用一台平板，討論後一起完成學習單。</p></div></div>
+        <div class="stage-choice-grid">
+          <button class="stage-choice active" data-stage-select="meaning" type="button"><span class="stage-number">第一階段</span><strong>意義段和自然段</strong><small>填寫段落範圍，完成歸納原因的句型。</small><span class="choice-action">選擇組別 ↗</span></button>
+          <button class="stage-choice" data-stage-select="story" type="button"><span class="stage-number">第二階段・第二堂課</span><strong>課文大意與故事結構</strong><small>依提示整理重點，摘錄課文線索。</small><span class="choice-action">選擇組別 ↗</span><span id="stageLockLabel" class="stage-lock-label">教師尚未開放</span></button>
+        </div>
+      </section>
+
+      <section id="groupPanel" class="group-panel hidden">
+        <div class="flow-heading"><button id="backToStages" class="back-button">← 返回階段</button><div class="eyebrow" id="selectedStageKicker">第一階段・小組共作</div><h2>請選擇你們的組別。</h2><p>小組共用一台平板，選好組別就開始作答。</p></div>
+        <div id="groupPicker" class="group-picker" role="group" aria-label="選擇組別"></div>
+      </section>
+
+      <section id="worksheetPanel" class="worksheet-panel hidden">
+        <div class="work-header"><div><div class="eyebrow" id="workKicker">第一組・第一階段</div><h2 id="workPageTitle">意義段和自然段</h2></div><div class="work-actions"><div id="saveStatus" class="save-status"><span></span>已同步</div><button id="changeGroup" class="back-button">← 返回組別</button></div></div>
+        <div class="stage-tabs" aria-label="學習階段"><button class="stage-tab" data-stage="meaning"><span>01</span><b>意義段</b></button><button class="stage-tab" data-stage="story"><span>02</span><b>故事結構</b><small>第二堂課</small></button></div>
+        <div id="stageMessage" class="stage-message"></div>
+        <form id="worksheetForm" class="worksheet card">
+          <div class="worksheet-title-row"><div><div id="stageKicker" class="eyebrow">第一階段・小組討論</div><h2 id="stageTitle">意義段和自然段</h2></div><span id="completionBadge" class="completion-badge">尚未完成</span></div>
+          <div id="questions"></div>
+          <div class="form-footer"><span class="muted">答案會自動儲存，討論完成後再送出。</span><button class="primary-button" type="submit">送出小組答案 ↗</button></div>
+        </form>
+      </section>
+      <footer class="page-foot">國語閱讀教室　用文字，整理你的發現。 ✦</footer>
+      <div id="completionBackdrop" class="modal-backdrop hidden"></div>
+      <section id="completionModal" class="completion-modal hidden" role="dialog" aria-modal="true" aria-labelledby="completionTitle">
+        <div class="completion-mark">✓</div><div class="eyebrow">ANSWER SUBMITTED</div><h2 id="completionTitle">完成！</h2>
+        <p>第一階段小組答案已送出，老師可以在投影頁查看。</p><button id="closeCompletion" class="hero-button" type="button">回到學習單</button>
+      </section>
+    </main>
+
+    <main id="teacherView" class="teacher-view hidden">
+      <section id="teacherLoginPanel" class="teacher-login card">
+        <div class="eyebrow">TEACHER’S DESK</div><h1>教師控制台</h1><p>查看小組作答進度，投影展示學習成果。</p>
+        <form id="teacherLoginForm"><label for="teacherPassword">教師密碼</label><input id="teacherPassword" class="answer-input" type="password" autocomplete="current-password" placeholder="輸入教師密碼"/><button class="hero-button" type="submit">進入控制台 ↗</button><div id="loginError" class="login-error"></div></form>
+        <button id="teacherPreview" class="local-preview-button hidden" type="button">本機預覽教師畫面</button>
+        <button id="studentEntry" class="back-button">← 返回首頁</button>
+      </section>
+      <section id="teacherDashboard" class="teacher-dashboard hidden">
+        <div class="teacher-heading"><div><div class="eyebrow">TEACHER’S DESK</div><h1>小組作答總覽</h1><p>點選任一組卡片，可放大投影答案。</p></div><button id="teacherLogout" class="back-button">登出教師</button></div>
+        <div class="teacher-toolbar"><div class="teacher-stage-switch"><button class="active" data-teacher-stage="meaning">01　意義段</button><button data-teacher-stage="story">02　故事結構</button></div><div class="live-indicator"><span></span>即時更新中</div><button id="stageControl" class="stage-control" type="button">開放第二階段</button><button id="resetButton" class="reset-button" type="button">清除本次作答</button><button id="teacherHome" class="reset-button" type="button">回首頁</button></div>
+        <div id="teacherGrid" class="teacher-grid"></div>
+      </section>
+      <div id="answerModal" class="answer-modal hidden" role="dialog" aria-modal="true" aria-labelledby="modalTitle"><button id="closeModal" class="modal-close" aria-label="關閉">×</button><div id="modalContent"></div></div><div id="modalBackdrop" class="modal-backdrop hidden"></div>
+    </main>
+  </div>
+  <script src="./app.js"></script>
+</body>
+</html>
