@@ -38,6 +38,12 @@ let activeStage = "meaning";
 let teacherStage = "meaning";
 let state = { submissions: {}, drafts: {}, storyOpen: false };
 let saveTimer;
+let pendingSave = null;
+let refreshInFlight = null;
+let draftRevision = 0;
+const writeQueues = new Map();
+const localDrafts = new Map();
+const pendingSubmissions = new Map();
 let useApi = true;
 let teacherAuthenticated = false;
 
@@ -55,27 +61,66 @@ async function api(path, options = {}) {
   return response.json();
 }
 async function refreshState() {
-  useApi = true;
-  try {
-    const query = teacherAuthenticated ? "?teacher=1" : selectedGroup ? `?group=${selectedGroup}` : "";
-    state = await api(`/api/state${query}`);
-    saveDemo();
-  } catch {
-    useApi = false;
-    loadDemo();
-  }
-  paint();
+  if (refreshInFlight) return refreshInFlight;
+  refreshInFlight = (async () => {
+    useApi = true;
+    try {
+      const query = teacherAuthenticated ? "?teacher=1" : selectedGroup ? "?group=" + selectedGroup : "";
+      const incoming = await api("/api/state" + query);
+      incoming.drafts ||= {};
+      incoming.submissions ||= {};
+      for (const [answerKey, draft] of localDrafts) incoming.drafts[answerKey] = draft.answers;
+      for (const [answerKey, submission] of pendingSubmissions) incoming.submissions[answerKey] = submission;
+      state = incoming;
+      saveDemo();
+    } catch {
+      useApi = false;
+      loadDemo();
+      for (const [answerKey, draft] of localDrafts) state.drafts[answerKey] = draft.answers;
+      for (const [answerKey, submission] of pendingSubmissions) state.submissions[answerKey] = submission;
+    }
+    paint();
+  })();
+  try { await refreshInFlight; } finally { refreshInFlight = null; }
 }
-async function persist(path, body) {
+function trackDraft(group, stage, answers) {
+  const answerKey = key(group, stage);
+  const revision = ++draftRevision;
+  localDrafts.set(answerKey, { answers, revision });
+  return revision;
+}
+function scheduleDraftSave(group, stage, answers, revision) {
+  pendingSave = { group, stage, answers, revision };
+  clearTimeout(saveTimer);
+  saveTimer = setTimeout(() => flushDraftSave(), 650);
+}
+function flushDraftSave() {
+  clearTimeout(saveTimer);
+  if (!pendingSave) return Promise.resolve(true);
+  const draft = pendingSave;
+  pendingSave = null;
+  return persist("/api/draft", { group: draft.group, stage: draft.stage, answers: draft.answers }, draft.revision);
+}
+async function persist(path, body, revision = null) {
   saveDemo();
-  setSaveStatus("儲存中…");
-  try {
+  const writeKey = Number.isInteger(body.group) ? key(body.group, body.stage) : path;
+  const previous = writeQueues.get(writeKey) || Promise.resolve();
+  const operation = previous.catch(() => {}).then(async () => {
+    setSaveStatus("\u5132\u5b58\u4e2d\u2026");
     await api(path, { method: "POST", body: JSON.stringify(body) });
     useApi = true;
-    setSaveStatus("已同步");
-    await refreshState();
-  } catch {
-    setSaveStatus("已儲存在此裝置");
+    if (path === "/api/draft" && localDrafts.get(writeKey)?.revision === revision) localDrafts.delete(writeKey);
+    if (path === "/api/submit") pendingSubmissions.delete(writeKey);
+    setSaveStatus("\u5df2\u540c\u6b65");
+    return true;
+  });
+  writeQueues.set(writeKey, operation);
+  try { return await operation; }
+  catch {
+    setSaveStatus("\u5c1a\u672a\u540c\u6b65\uff0c\u7b54\u6848\u4ecd\u4fdd\u7559\u5728\u9019\u53f0\u88dd\u7f6e");
+    return false;
+  } finally {
+    if (writeQueues.get(writeKey) === operation) writeQueues.delete(writeKey);
   }
 }
 function setSaveStatus(message) {
@@ -127,18 +172,20 @@ function renderWorksheet() {
     if (!event.target.matches(".answer-input")) return;
     if (event.target instanceof HTMLTextAreaElement) autoResizeTextarea(event.target);
     const answers = readForm();
-    const answerKey = key(selectedGroup, activeStage);
+    const currentGroup = selectedGroup;
+    const currentStage = activeStage;
+    const answerKey = key(currentGroup, currentStage);
     state.drafts[answerKey] = answers;
     if (state.submissions[answerKey]) {
       delete state.submissions[answerKey];
-      $("#completionBadge").textContent = "修改中・尚未重新送出";
+      $("#completionBadge").textContent = "\u4fee\u6539\u4e2d\uff0c\u8acb\u91cd\u65b0\u9001\u51fa";
       $("#completionBadge").classList.remove("done");
     }
     saveDemo();
-    setSaveStatus("自動儲存中…");
-    if (activeStage === "meaning") updateMeaningPreview(event.target);
-    clearTimeout(saveTimer);
-    saveTimer = setTimeout(() => persist("/api/draft", { group: selectedGroup, stage: activeStage, answers }), 650);
+    setSaveStatus("\u81ea\u52d5\u5132\u5b58\u4e2d\u2026");
+    if (currentStage === "meaning") updateMeaningPreview(event.target);
+    const revision = trackDraft(currentGroup, currentStage, answers);
+    scheduleDraftSave(currentGroup, currentStage, answers, revision);
   };
   const addMeaningRowButton = $("#addMeaningRow");
   if (addMeaningRowButton) addMeaningRowButton.onclick = addMeaningRow;
@@ -180,15 +227,17 @@ function renderMeaningSheet(sheet, answer) {
     <button id="addMeaningRow" class="add-row-button" type="button">＋ 新增意義段欄位</button>`;
 }
 async function addMeaningRow() {
+  flushDraftSave();
   const answerKey = key(selectedGroup, "meaning");
   const answers = readForm();
   const nextCount = Math.max(WORKSHEETS.meaning.rows, Number(answers._rowCount) || WORKSHEETS.meaning.rows) + 1;
   answers._rowCount = String(nextCount);
   delete state.submissions[answerKey];
   state.drafts[answerKey] = answers;
+  const revision = trackDraft(selectedGroup, "meaning", answers);
   saveDemo();
   renderWorksheet();
-  await persist("/api/draft", { group: selectedGroup, stage: "meaning", answers });
+  await persist("/api/draft", { group: selectedGroup, stage: "meaning", answers }, revision);
 }
 function renderStorySheet(sheet, answer) {
   const rows = sheet.sections.map(section => `<article class="story-row">
@@ -314,25 +363,48 @@ function bind() {
     $("#stagePanel").scrollIntoView({ behavior: "smooth", block: "start" });
   };
   $("#changeGroup").onclick = () => {
+    flushDraftSave();
     $("#worksheetPanel").classList.add("hidden");
     $("#groupPanel").classList.remove("hidden");
     buildGroupPicker();
   };
   $("#worksheetForm").onsubmit = async event => {
     event.preventDefault();
+    const submitButton = $("#worksheetForm button[type=submit]");
+    if (submitButton.disabled) return;
+    submitButton.disabled = true;
+    flushDraftSave();
+    const group = selectedGroup;
+    const stage = activeStage;
     const answers = readForm();
-    state.submissions[key(selectedGroup, activeStage)] = { answers, submittedAt: new Date().toISOString() };
-    delete state.drafts[key(selectedGroup, activeStage)];
-    await persist("/api/submit", { group: selectedGroup, stage: activeStage, answers });
-    $("#completionBadge").textContent = "已送出";
-    $("#completionBadge").classList.add("done");
-    if (activeStage === "meaning") {
-      $("#completionModal").classList.remove("hidden");
-      $("#completionBackdrop").classList.remove("hidden");
+    const answerKey = key(group, stage);
+    const submission = { answers, submittedAt: new Date().toISOString() };
+    state.submissions[answerKey] = submission;
+    delete state.drafts[answerKey];
+    localDrafts.delete(answerKey);
+    pendingSubmissions.set(answerKey, submission);
+    saveDemo();
+    const saved = await persist("/api/submit", { group, stage, answers });
+    if (saved) {
+      $("#completionBadge").textContent = "\u5df2\u9001\u51fa";
+      $("#completionBadge").classList.add("done");
+      if (stage === "meaning") {
+        $("#completionModal").classList.remove("hidden");
+        $("#completionBackdrop").classList.remove("hidden");
+      }
+    } else {
+      pendingSubmissions.delete(answerKey);
+      delete state.submissions[answerKey];
+      state.drafts[answerKey] = answers;
+      const revision = trackDraft(group, stage, answers);
+      setSaveStatus("\u540c\u6b65\u5931\u6557\uff0c\u7b54\u6848\u4ecd\u7559\u5728\u9019\u53f0\u5e73\u677f\uff0c\u8acb\u6aa2\u67e5\u7db2\u8def\u5f8c\u91cd\u65b0\u9001\u51fa");
+      scheduleDraftSave(group, stage, answers, revision);
     }
+    submitButton.disabled = false;
   };
   $$(".stage-tab").forEach(tab => tab.onclick = () => {
     if (tab.dataset.stage === "story" && !state.storyOpen) { setSaveStatus("第二階段尚未開放"); return; }
+    flushDraftSave();
     activeStage = tab.dataset.stage;
     renderWorksheet();
   });
@@ -409,4 +481,7 @@ bind();
 if (params.has("teacher")) teacherMode(true);
 else if (selectedGroup) enterGroup();
 refreshState();
-setInterval(refreshState, 2500);
+setInterval(() => { if (document.visibilityState === "visible") refreshState(); }, 2500);
+document.addEventListener("visibilitychange", () => {
+  if (document.visibilityState === "visible") refreshState();
+});
